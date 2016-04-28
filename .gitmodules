@@ -1,0 +1,3 @@
+[submodule "VS_LAB"]
+	path = VS_LAB
+	url = https://github.com/schmid1m/VS_LAB.git
