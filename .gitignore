@@ -1,0 +1,4 @@
+*.o
+*.user
+Makefile*
+vs_server
