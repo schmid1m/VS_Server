@@ -17,6 +17,12 @@
 
 int main(void)
 {
+    msg packet;
+    uint32_t seq_num = 0, blk_ID = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
+    FID fid;
+    uint8_t err, prio, *ip_ptr;
+    uint16_t gp, cid, *data, bid, temp_result;
+
     if (SUCCESS == init_server())
     {
     	printf("Server started successfully!\n\n");
@@ -27,29 +33,25 @@ int main(void)
     	return -1;
     }
 
-    msg* packet = malloc(sizeof(msg));
-    uint32_t seq_num = 0, blk_ID = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
-    FID fid;
-    uint8_t err, prio;
-    uint16_t gp, cid, *data, bid, temp_result;
-
 	PLREG_Open(str2ul(PLREG_ADDR_GP), &gp_ptr);
 	PLREG_Open(str2ul(PLREG_ADDR_DATA), &data_ptr);
 
 
 	do {
 
-		err = recv_msg(packet, &target_client_ip);
+        err = recv_msg(&packet, &target_client_ip);
 		if(err != NO_ERROR)
 		{
 			printf("Error recv_msg: %d\n", err);
 		}
 
-		fid = get_msg_type(packet);
+        ip_ptr = (uint8_t*)&target_client_ip;
+
+        fid = get_msg_type(&packet);
 
 		switch (fid) {
 			case GP_REQ:
-				err = extract_gp_req(packet,&gp,&cid,&prio);
+                err = extract_gp_req(&packet,&gp,&cid,&prio);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
@@ -70,11 +72,11 @@ int main(void)
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 				}
-				printf("GP Response sent to %d!\n", target_client_ip);
+                printf("GP Response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
 				break;
 
 			case DECRYPT_REQ:
-				err = extract_dec_req(packet,&cid,&bid,&data,&data_len);
+                err = extract_dec_req(&packet,&cid,&bid,&data,&data_len);
 				printf("Decrypt started!\n");
 				if(err != NO_ERROR)
 				{
@@ -102,11 +104,11 @@ int main(void)
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 				}
-				printf("Decrypt response sent!\n");
+                printf("Decrypt response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
 				break;
 
 			case UNLOCK_REQ:
-				err = extract_unlock_req(packet, &cid);
+                err = extract_unlock_req(&packet, &cid);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
@@ -120,10 +122,11 @@ int main(void)
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 				}
-				break;
+                printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
+                break;
 
 			case BROADCAST_REQ:
-				err = extract_brdcst_req(packet);
+                err = extract_brdcst_req(&packet);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
@@ -137,11 +140,11 @@ int main(void)
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 				}
-
-				break;
+                printf("Broadcast response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
+                break;
 
 			case STATUS_REQ:
-				err = extract_status_req(packet);
+                err = extract_status_req(&packet);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
@@ -155,14 +158,15 @@ int main(void)
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 				}
-				break;
+                printf("Status response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
+                break;
 			case UNKNOWN:
 				send_error_rsp(ERR_UNKNOWN, blk_ID, target_client_ip,fid);
 				break;
 			default:
 				break;
 		}
-        free_msg(packet);
+        free_msg(&packet);
 	} while (1);
 
 	PLREG_Close(str2ul(PLREG_ADDR_GP), gp_ptr);
