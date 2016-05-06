@@ -21,7 +21,8 @@ int main(void)
     uint32_t seq_num = 0, blk_ID = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
     FID fid;
     uint8_t err, prio, *ip_ptr;
-    uint16_t gp, cid, *data, bid, temp_result;
+    uint16_t gp, cid, *data, bid;
+    int temp_result;
 
     if (SUCCESS == init_server())
     {
@@ -65,7 +66,8 @@ int main(void)
 					break;
 				}
 				printf("Generator Polynom is set: %x\n",gp);
-
+                // Sequence number initialisieren
+                seq_num = 0;
 				err = send_gp_rsp(target_client_ip);
 				if(err != NO_ERROR)
 				{
@@ -88,21 +90,20 @@ int main(void)
 				// Scrambling
                 for(uint32_t i=0; i<data_len;i++)
 				{
-					PLREG_Scramble(data_ptr, data[i], (int*)&temp_result);
-					data[i] = temp_result;
+                    PLREG_Scramble(data_ptr, data[i], &temp_result);
+                    ((uint8_t*)data)[i] = (uint8_t)(temp_result & 0xFF);
+                    seq_num++;
 				}
+                ((uint8_t*)data)[data_len] = '\0';
 				printf("Scrambling done!\n");
 				// sequence number inkrementieren
-                //
-                //
-                // TODO copy relevant bytes together
-                //
-                //
+                printf("Decrypted Sequence: \"%s\"\n", (uint8_t*)data);
                 err = send_dec_rsp(bid,cid,(uint8_t*)data,data_len,target_client_ip);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
+                    break;
 				}
                 printf("Decrypt response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
 				break;
@@ -121,6 +122,7 @@ int main(void)
 				{
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
+                    break;
 				}
                 printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
@@ -139,6 +141,7 @@ int main(void)
 				{
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
+                    break;
 				}
                 printf("Broadcast response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
@@ -157,6 +160,7 @@ int main(void)
 				{
 					printf("An error occured: %d\n",err);
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
+                    break;
 				}
                 printf("Status response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
