@@ -28,7 +28,7 @@ void tol_handle_timeout(int signum) {
  *	\brief Start timer
  *	\param seconds	Number of seconds until timeout elapses.
  */
-inline void tol_start_timeout(int seconds) {
+void tol_start_timeout(int seconds) {
 	// set signal handler for timeout
 	signal(SIGALRM, tol_handle_timeout);
 	// terminate recvfrom if a timeout occurs
@@ -42,7 +42,7 @@ inline void tol_start_timeout(int seconds) {
  *	\brief Stop timer
  *	\param
 */
-inline void tol_stop_timeout(void) {
+void tol_stop_timeout(void) {
 	alarm(0);
 	signal(SIGALRM, SIG_IGN);
 }
@@ -51,7 +51,7 @@ inline void tol_stop_timeout(void) {
  *	\brief Check if timeout occurred
  *	\return True if timeout occurred, false otherwise.
  */
-inline int tol_is_timed_out(void) {
+int tol_is_timed_out(void) {
 	return (cTimeoutFlag == TOL_TIMEOUT_OCCURRED);
 }
 
@@ -59,7 +59,7 @@ inline int tol_is_timed_out(void) {
  *	\brief Reset timeout flag
  *	\param
  */
-inline void tol_reset_timeout(void) {
+void tol_reset_timeout(void) {
 	cTimeoutFlag = TOL_TIMEOUT_NONE;
 	return;
 }

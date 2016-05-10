@@ -18,9 +18,9 @@
 #define TOL_TIMEOUT_SECS		10
 
 
-inline void tol_start_timeout(int seconds);
-inline void tol_stop_timeout(void);
-inline void tol_reset_timeout(void);
-inline int tol_is_timed_out(void);
+void tol_start_timeout(int seconds);
+void tol_stop_timeout(void);
+void tol_reset_timeout(void);
+int tol_is_timed_out(void);
 
 #endif //#define _timeoutlib_h_

@@ -22,7 +22,7 @@ int main(void)
     FID fid;
     uint8_t err, prio, *ip_ptr;
     uint16_t gp, *data, bid, pkt_bid;
-    uint32_t seq_num = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
+    uint32_t seq_num = 0, target_client_ip, my_client_ip, *gp_ptr, *data_ptr, data_len;
     int16_t cid = -1, pkt_cid;
     int temp_result;
 
@@ -73,6 +73,7 @@ int main(void)
                     send_error_rsp(ERR_FUNCTIONEXEC, 0/*bid*/, target_client_ip, fid);
 					break;
 				}
+                my_client_ip = target_client_ip;
                 tol_start_timeout(TOL_TIMEOUT_SECS);
                 cid = pkt_cid;
                 printf("Client %d set Generator Polynom: %x\n",cid, gp);
@@ -113,6 +114,7 @@ int main(void)
                     seq_num++;
 				}
                 ((uint8_t*)data)[data_len] = '\0';
+                my_client_ip = target_client_ip;
                 tol_start_timeout(TOL_TIMEOUT_SECS);
 				printf("Scrambling done!\n");
                 //printf("Decrypted Sequence: \"%s\"\n", (uint8_t*)data);
@@ -197,7 +199,18 @@ int main(void)
 		}
         if (tol_is_timed_out()) {
             tol_reset_timeout();
-            printf("Server: Got a timeout --> Restarting\n");
+            printf("Timeout: unlocking client\n");
+            cid = -1;
+            bid = 0;
+            err = send_unlock_rsp(my_client_ip);
+            if(err != NO_ERROR)
+            {
+                printf("An error occured: %d\n",err);
+            }
+            else
+            {
+                printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
+            }
             continue;
         }
         free_msg(&packet);
