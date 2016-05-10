@@ -1,30 +1,30 @@
 /**************************************************************
 **  File        : main.c (server)                            **
-**  Version     : 0.1                                        **
+**  Version     : 1.0                                        **
 **  Created     : 03.05.2016                                 **
-**  Last change : 03.05.2016                                 **
+**  Last change : 10.05.2016                                 **
 **  Project     : Verteilte Systeme Labor                    **
 **************************************************************/
 
 #include <stdio.h>
 #include <string.h>
 
-#include "VS_LAB/Macros.h"
-#include "VS_LAB/serverAPI.h"
-#include "VS_LAB/commonAPI.h"
+#include "api/Macros.h"
+#include "api/serverAPI.h"
+#include "api/commonAPI.h"
 
 #include "plreglib.h"
 
 int main(void)
 {
     msg packet;
-    uint32_t seq_num = 0, blk_ID = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
     FID fid;
     uint8_t err, prio, *ip_ptr;
     uint16_t gp, cid, *data, bid;
+    uint32_t seq_num = 0, blk_ID = 0, target_client_ip, *gp_ptr, *data_ptr, data_len;
     int temp_result;
 
-    if (SUCCESS == init_server())
+    if(SUCCESS == init_server())
     {
     	printf("Server started successfully!\n\n");
     }
@@ -59,8 +59,7 @@ int main(void)
 					send_error_rsp(err, 0/*blk_ID*/, target_client_ip, fid);
 					break;
 				}
-
-				if (PLREG_SetGeneratorPolynom(gp_ptr, gp) < 0)
+				if(PLREG_SetGeneratorPolynom(gp_ptr, gp) < 0)
 				{
 					send_error_rsp(ERROR, 0/*blk_ID*/, target_client_ip, fid);
 					break;
@@ -86,7 +85,6 @@ int main(void)
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 					break;
 				}
-
 				// Scrambling
                 for(uint32_t i=0; i<data_len;i++)
 				{
@@ -96,7 +94,6 @@ int main(void)
 				}
                 ((uint8_t*)data)[data_len] = '\0';
 				printf("Scrambling done!\n");
-				// sequence number inkrementieren
                 printf("Decrypted Sequence: \"%s\"\n", (uint8_t*)data);
                 err = send_dec_rsp(bid,cid,(uint8_t*)data,data_len,target_client_ip);
 				if(err != NO_ERROR)
@@ -116,7 +113,6 @@ int main(void)
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 					break;
 				}
-
 				err = send_unlock_rsp(target_client_ip);
 				if(err != NO_ERROR)
 				{
@@ -135,7 +131,6 @@ int main(void)
 					send_error_rsp(err, blk_ID, target_client_ip,fid);
 					break;
 				}
-
 				err = send_brdcst_rsp(target_client_ip);
 				if(err != NO_ERROR)
 				{
@@ -164,9 +159,11 @@ int main(void)
 				}
                 printf("Status response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
+
 			case UNKNOWN:
 				send_error_rsp(ERR_UNKNOWN, blk_ID, target_client_ip,fid);
 				break;
+
 			default:
 				break;
 		}
