@@ -128,7 +128,7 @@ int main(void)
                     break;
                 }
                 bid = pkt_bid;
-                printf("Decrypt started!\n");
+                printf("Decrypt started! Block: %d\n", bid);
                 // Scrambling
                 tol_stop_timeout();
                 for(i=0; i<data_len;i++)
