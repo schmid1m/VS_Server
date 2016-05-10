@@ -6,7 +6,8 @@ CONFIG -= qt
 SOURCES += main.c \
     VS_LAB/PacketLib.c \
     VS_LAB/serverAPI.c \
-    plreglib.c
+    plreglib.c \
+    timeoutlib.c
 
 HEADERS += \
     VS_LAB/commonAPI.h \
@@ -14,5 +15,6 @@ HEADERS += \
     VS_LAB/Macros.h \
     VS_LAB/PacketLib.h \
     VS_LAB/serverAPI.h \
-    plreglib.h
+    plreglib.h \
+    timeoutlib.h
 
