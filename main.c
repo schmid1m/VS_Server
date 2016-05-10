@@ -43,10 +43,28 @@ int main(void)
 	do {
 
         err = recv_msg(&packet, &target_client_ip);
-        printf("Packet received\n");
+        if (tol_is_timed_out()) {
+            tol_reset_timeout();
+            printf("Timeout: unlocking client\n");
+            cid = -1;
+            bid = 0;
+            err = send_unlock_rsp(my_client_ip);
+            if(err != NO_ERROR)
+            {
+                printf("An error occured: %d\n",err);
+            }
+            else
+            {
+                printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
+            }
+            continue;
+        }
+        //printf("Packet received\n");
         if(err != NO_ERROR)
 		{
 			printf("Error recv_msg: %d\n", err);
+			free_msg(&packet);
+			continue;
 		}
 
         ip_ptr = (uint8_t*)&target_client_ip;
@@ -204,22 +222,6 @@ int main(void)
 			default:
 				break;
 		}
-        if (tol_is_timed_out()) {
-            tol_reset_timeout();
-            printf("Timeout: unlocking client\n");
-            cid = -1;
-            bid = 0;
-            err = send_unlock_rsp(my_client_ip);
-            if(err != NO_ERROR)
-            {
-                printf("An error occured: %d\n",err);
-            }
-            else
-            {
-                printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
-            }
-            continue;
-        }
         free_msg(&packet);
 	} while (1);
 
