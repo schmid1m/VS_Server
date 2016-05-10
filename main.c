@@ -22,7 +22,7 @@ int main(void)
     FID fid;
     uint8_t err, prio, *ip_ptr;
     uint16_t gp, *data, bid, pkt_bid;
-    uint32_t seq_num = 0, target_client_ip, my_client_ip, *gp_ptr, *data_ptr, data_len;
+    uint32_t seq_num = 0, target_client_ip, my_client_ip, *gp_ptr, *data_ptr, data_len, i;
     int16_t cid = -1, pkt_cid;
     int temp_result;
 
@@ -59,18 +59,18 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, 0/*bid*/, target_client_ip, fid);
+                    send_error_rsp(err, 0/*bid*/, fid, target_client_ip);
 					break;
                 }
                 if((cid != -1) && (cid != pkt_cid))
                 {
                     printf("ERROR: Server locked by %d\n", cid);
-                    send_error_rsp(ERR_SERVERINUSE, 0, target_client_ip, fid);
+                    err = send_error_rsp(ERR_SERVERINUSE, 0, fid, target_client_ip);
                     break;
                 }
 				if(PLREG_SetGeneratorPolynom(gp_ptr, gp) < 0)
 				{
-                    send_error_rsp(ERR_FUNCTIONEXEC, 0/*bid*/, target_client_ip, fid);
+                    send_error_rsp(ERR_FUNCTIONEXEC, 0/*bid*/, fid, target_client_ip);
 					break;
 				}
                 my_client_ip = target_client_ip;
@@ -83,7 +83,7 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
                     break;
 				}
                 printf("GP Response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -94,20 +94,26 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, pkt_bid, target_client_ip,fid);
+                    send_error_rsp(err, pkt_bid, fid, target_client_ip);
 					break;
 				}
-                if((cid == -1) || (cid != pkt_cid))
+                if(cid == -1)
+                {
+                    printf("ERROR: Server not locked.\n");
+                    send_error_rsp(ERR_NO_GP, pkt_bid, fid, target_client_ip);
+                    break;
+                }
+                if(cid != pkt_cid)
                 {
                     printf("ERROR: Server locked by %d\n", cid);
-                    send_error_rsp(ERR_SERVERINUSE, pkt_bid, target_client_ip,fid);
+                    send_error_rsp(ERR_SERVERINUSE, pkt_bid, fid, target_client_ip);
                     break;
                 }
                 bid = pkt_bid;
                 printf("Decrypt started!\n");
                 // Scrambling
                 tol_stop_timeout();
-                for(uint32_t i=0; i<data_len;i++)
+                for(i=0; i<data_len;i++)
 				{
                     PLREG_Scramble(data_ptr, data[i], &temp_result);
                     ((uint8_t*)data)[i] = (uint8_t)(temp_result & 0xFF);
@@ -122,7 +128,7 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
                     break;
 				}
                 printf("Decrypt response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -133,21 +139,22 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
 					break;
 				}
                 if((cid == -1) || (cid != pkt_cid))
                 {
                     printf("ERROR: Cannot unlock! Server locked by %d\n", cid);
-                    send_error_rsp(ERR_NOTFORME, bid, target_client_ip,fid);
+                    send_error_rsp(ERR_NOTFORME, bid, fid, target_client_ip);
                     break;
                 }
                 tol_stop_timeout();
+                cid = -1;
                 err = send_unlock_rsp(target_client_ip);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
                     break;
 				}
                 printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -158,14 +165,14 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
 					break;
 				}
 				err = send_brdcst_rsp(target_client_ip);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
                     break;
 				}
                 printf("Broadcast response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -176,7 +183,7 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
 					break;
 				}
 
@@ -184,14 +191,14 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, target_client_ip,fid);
+                    send_error_rsp(err, bid, fid, target_client_ip);
                     break;
 				}
                 printf("Status response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
 
 			case UNKNOWN:
-                send_error_rsp(ERR_UNKNOWN, bid, target_client_ip,fid);
+                send_error_rsp(ERR_UNKNOWN, bid, fid, target_client_ip);
 				break;
 
 			default:
