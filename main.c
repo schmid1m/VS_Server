@@ -113,18 +113,21 @@ int main(void)
 				{
 					printf("An error occured: %d\n",err);
                     send_error_rsp(err, pkt_bid, fid, target_client_ip);
-					break;
+                    free_data((uint8_t*)data);
+                    break;
 				}
                 if(cid == -1)
                 {
                     printf("ERROR: Server not locked.\n");
                     send_error_rsp(ERR_NO_GP, pkt_bid, fid, target_client_ip);
+                    free_data((uint8_t*)data);
                     break;
                 }
                 if(cid != pkt_cid)
                 {
                     printf("ERROR: Server locked by %d\n", cid);
                     send_error_rsp(ERR_SERVERINUSE, pkt_bid, fid, target_client_ip);
+                    free_data((uint8_t*)data);
                     break;
                 }
                 bid = pkt_bid;
@@ -143,7 +146,8 @@ int main(void)
 				printf("Scrambling done!\n");
                 //printf("Decrypted Sequence: \"%s\"\n", (uint8_t*)data);
                 err = send_dec_rsp(bid,cid,(uint8_t*)data,data_len,target_client_ip);
-				if(err != NO_ERROR)
+                free_data((uint8_t*)data);
+                if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
                     send_error_rsp(err, bid, fid, target_client_ip);
