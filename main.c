@@ -48,7 +48,7 @@ int main(void)
             printf("Timeout: unlocking client\n");
             cid = -1;
             bid = 0;
-            err = send_unlock_rsp(my_client_ip);
+            err = send_error_rsp(ERR_LOCK_TIMEOUT, bid, GP_REQ, my_client_ip);
             if(err != NO_ERROR)
             {
                 printf("An error occured: %d\n",err);
