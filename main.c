@@ -21,7 +21,7 @@ int main(void)
     msg packet;
     FID fid;
     uint8_t err, prio, *ip_ptr;
-    uint16_t gp, *data, bid, pkt_bid;
+    uint16_t gp, *data, bid, pkt_bid, pkt_port, my_client_port;
     uint32_t seq_num = 0, target_client_ip, my_client_ip, *gp_ptr, *data_ptr, data_len, i;
     int16_t cid = -1, pkt_cid;
     int temp_result;
@@ -42,13 +42,13 @@ int main(void)
 
 	do {
 
-        err = recv_msg(&packet, &target_client_ip);
+        err = recv_msg(&packet, &target_client_ip, &pkt_port);
         if (tol_is_timed_out()) {
             tol_reset_timeout();
             printf("Timeout: unlocking client\n");
             cid = -1;
             bid = 0;
-            err = send_error_rsp(ERR_LOCK_TIMEOUT, bid, GP_REQ, my_client_ip);
+            err = send_error_rsp(ERR_LOCK_TIMEOUT, bid, GP_REQ, my_client_ip, my_client_port);
             if(err != NO_ERROR)
             {
                 printf("An error occured: %d\n",err);
@@ -60,6 +60,10 @@ int main(void)
             continue;
         }
         //printf("Packet received\n");
+        if(err == ERR_NO_PACKET)
+        {
+            continue;
+        }
         if(err != NO_ERROR)
 		{
 			printf("Error recv_msg: %d\n", err);
@@ -77,31 +81,32 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, 0/*bid*/, fid, target_client_ip);
+                    send_error_rsp(err, 0/*bid*/, fid, target_client_ip, pkt_port);
 					break;
                 }
                 if((cid != -1) && (cid != pkt_cid))
                 {
                     printf("ERROR: Server locked by %d\n", cid);
-                    err = send_error_rsp(ERR_SERVERINUSE, 0, fid, target_client_ip);
+                    err = send_error_rsp(ERR_SERVERINUSE, 0, fid, target_client_ip, pkt_port);
                     break;
                 }
 				if(PLREG_SetGeneratorPolynom(gp_ptr, gp) < 0)
 				{
-                    send_error_rsp(ERR_FUNCTIONEXEC, 0/*bid*/, fid, target_client_ip);
+                    send_error_rsp(ERR_FUNCTIONEXEC, 0/*bid*/, fid, target_client_ip, pkt_port);
 					break;
 				}
                 my_client_ip = target_client_ip;
+                my_client_port = pkt_port;
                 tol_start_timeout(TOL_TIMEOUT_SECS);
                 cid = pkt_cid;
                 printf("Client %d set Generator Polynom: %x\n",cid, gp);
                 // Sequence number initialisieren
                 seq_num = 0;
-				err = send_gp_rsp(target_client_ip);
+                err = send_gp_rsp(target_client_ip, pkt_port);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
                     break;
 				}
                 printf("GP Response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -112,21 +117,21 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, pkt_bid, fid, target_client_ip);
+                    send_error_rsp(err, pkt_bid, fid, target_client_ip, pkt_port);
                     free_data((uint8_t*)data);
                     break;
 				}
                 if(cid == -1)
                 {
                     printf("ERROR: Server not locked.\n");
-                    send_error_rsp(ERR_NO_GP, pkt_bid, fid, target_client_ip);
+                    send_error_rsp(ERR_NO_GP, pkt_bid, fid, target_client_ip, pkt_port);
                     free_data((uint8_t*)data);
                     break;
                 }
                 if(cid != pkt_cid)
                 {
                     printf("ERROR: Server locked by %d\n", cid);
-                    send_error_rsp(ERR_SERVERINUSE, pkt_bid, fid, target_client_ip);
+                    send_error_rsp(ERR_SERVERINUSE, pkt_bid, fid, target_client_ip, pkt_port);
                     free_data((uint8_t*)data);
                     break;
                 }
@@ -142,15 +147,16 @@ int main(void)
 				}
                 ((uint8_t*)data)[data_len] = '\0';
                 my_client_ip = target_client_ip;
+                my_client_port = pkt_port;
                 tol_start_timeout(TOL_TIMEOUT_SECS);
 				printf("Scrambling done!\n");
                 //printf("Decrypted Sequence: \"%s\"\n", (uint8_t*)data);
-                err = send_dec_rsp(bid,cid,(uint8_t*)data,data_len,target_client_ip);
+                err = send_dec_rsp(bid,cid,(uint8_t*)data,data_len,target_client_ip, pkt_port);
                 free_data((uint8_t*)data);
                 if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
                     break;
 				}
                 printf("Decrypt response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -161,22 +167,22 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
 					break;
 				}
                 if((cid == -1) || (cid != pkt_cid))
                 {
                     printf("ERROR: Cannot unlock! Server locked by %d\n", cid);
-                    send_error_rsp(ERR_NOTFORME, bid, fid, target_client_ip);
+                    send_error_rsp(ERR_NOTFORME, bid, fid, target_client_ip, pkt_port);
                     break;
                 }
                 tol_stop_timeout();
                 cid = -1;
-                err = send_unlock_rsp(target_client_ip);
+                err = send_unlock_rsp(target_client_ip, pkt_port);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
                     break;
 				}
                 printf("Unlock response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -187,14 +193,14 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
 					break;
 				}
-				err = send_brdcst_rsp(target_client_ip);
+                err = send_brdcst_rsp(target_client_ip, pkt_port);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
                     break;
 				}
                 printf("Broadcast response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
@@ -205,22 +211,22 @@ int main(void)
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
 					break;
 				}
 
-                err = send_status_rsp(cid, seq_num, target_client_ip);
+                err = send_status_rsp(cid, seq_num, target_client_ip, pkt_port);
 				if(err != NO_ERROR)
 				{
 					printf("An error occured: %d\n",err);
-                    send_error_rsp(err, bid, fid, target_client_ip);
+                    send_error_rsp(err, bid, fid, target_client_ip, pkt_port);
                     break;
 				}
                 printf("Status response sent to %d.%d.%d.%d\n", ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0]);
                 break;
 
 			case UNKNOWN:
-                send_error_rsp(ERR_UNKNOWN, bid, fid, target_client_ip);
+                send_error_rsp(ERR_UNKNOWN, bid, fid, target_client_ip, pkt_port);
 				break;
 
 			default:
