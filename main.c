@@ -59,11 +59,11 @@ int main(void)
             }
             continue;
         }
-        //printf("Packet received\n");
         if(err == ERR_NO_PACKET)
         {
             continue;
         }
+        printf("Packet received; addr: %d; port:%d\n", target_client_ip, pkt_port);
         if(err != NO_ERROR)
 		{
 			printf("Error recv_msg: %d\n", err);
