@@ -15,7 +15,7 @@
 
 #include "plreglib.h"
 
-#define TIMETODEATH 15
+#define TIMETODEATH 1500
 
 
 int main(int argc, char **argv)
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     uint8_t err, prio, *ip_ptr, my_prio;
     uint16_t gp, *data, bid, pkt_bid, pkt_port, my_client_port = 0;
     uint32_t seq_num = 0, target_client_ip, my_client_ip=0, *gp_ptr, *data_ptr, data_len, i;
-    int16_t cid = -1, pkt_cid;
+    int16_t cid = -1, pkt_cid, last_logged_cid = -1;
     uint32_t t1 = 0;
 
     int server_num = 0;
@@ -55,14 +55,17 @@ int main(int argc, char **argv)
         err = recv_msg(&packet, &target_client_ip, &pkt_port);
         if(err == ERR_NO_PACKET)
 		{
-            printf("Server %d: Timeoutcounter %d\n",server_num,++t1);
+            if(t1 % 100 == 0)
+                printf("Server %d: Timeoutcounter %d\n",server_num,(t1 / 100));
+            t1++;
         	if(t1 >= TIMETODEATH)
         	{
     			t1 = 0;
                 printf("Server %d: >> Timeout!\n",server_num);
     			if(my_client_ip != 0)
 				{
-					err = send_unlock_rsp(my_client_ip,my_client_port);
+//					err = send_unlock_rsp(my_client_ip,my_client_port);
+                    err = send_error_rsp(ERR_LOCK_TIMEOUT, 0, GP_REQ,my_client_ip, my_client_port);
 					if(err != NO_ERROR)
 					{
                         printf("Server %d: Sending unlock / timeout response failed: %d\n",server_num,err);
@@ -92,8 +95,6 @@ int main(int argc, char **argv)
 
         ip_ptr = (uint8_t*)&target_client_ip;
         fid = get_msg_type(&packet);
-        t1=0;
-
 		switch(fid) {
 
 		/********** GENERATOR POLYNOM REQUEST ********************************/
@@ -106,6 +107,12 @@ int main(int argc, char **argv)
                     printf("Server %d: Extracting GP_REQ-Packet was not possible: %d\n",server_num,err);
                     send_error_rsp(err, 0/*bid*/, fid, target_client_ip, pkt_port);
 					break;
+                }
+                if(pkt_cid < 0)
+                {
+                    printf("Server %d: Client ID was below 0: %d\n",server_num,pkt_cid);
+                    send_error_rsp(ERR_UNKNOWN,0,GP_REQ,target_client_ip, pkt_port);
+                    break;
                 }
                 if((cid != -1) && (cid != pkt_cid))	// locked and another one tries to lock
                 {
@@ -132,6 +139,7 @@ int main(int argc, char **argv)
                 my_client_port = pkt_port;
                 my_prio = prio;
                 cid = pkt_cid;
+				last_logged_cid = cid;
                 printf("Server %d: Client (ID: %d) set generator polynom: %x\n",server_num,cid,gp);
                 // Sequence number initialisieren
                 seq_num = 0;
@@ -231,7 +239,6 @@ int main(int argc, char **argv)
                     break;
 				}
                 printf("Server %d: Unlock response sent to %d.%d.%d.%d on port %d\n",server_num,ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0],pkt_port);
-                t1=0;
                 break;
 
         /********** BROADCAST REQUEST ****************************************/
@@ -253,7 +260,6 @@ int main(int argc, char **argv)
                     break;
 				}
                 printf("Server %d: Broadcast response sent to %d.%d.%d.%d on port %d\n",server_num,ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0],pkt_port);
-                t1=0;
                 break;
 
         /********** STATUS REQUEST *******************************************/
@@ -275,7 +281,6 @@ int main(int argc, char **argv)
                     break;
 				}
                 printf("Server %d: Status response sent to %d.%d.%d.%d on port %d\n",server_num,ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0],pkt_port);
-                t1=0;
                 break;
 
         /********** UNKNOWN FUNCTION ID **************************************/
@@ -284,7 +289,6 @@ int main(int argc, char **argv)
                 printf("\nServer %d: Received packet that calls unknown function!\n",server_num);
                 send_error_rsp(ERR_NOSUCHFUNCTION, bid, fid, target_client_ip, pkt_port);
                 printf("Server %d: 'No such function'-Frame sent to %d.%d.%d.%d on port %d\n",server_num,ip_ptr[3],ip_ptr[2],ip_ptr[1],ip_ptr[0],pkt_port);
-                t1=0;
                 break;
 
 			default:
