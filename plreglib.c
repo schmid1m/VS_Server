@@ -149,9 +149,6 @@ int PLREG_Scramble(unsigned int *reg_ptr, int operand, int *result)
 		*result = (((GP_15_1 & 0x0000) ^ (operand << 1)) & 0xFFFE) | res0;
 	}
 
-	// wait a little bit...
-	for (i = 0; i < 150000; i++);
-
 	return EPLREG_NOERROR;
 #else
 	// Write operand and read scrambled data
