@@ -22,8 +22,8 @@ int main(int argc, char **argv)
 {
     msg packet;
     FID fid;
-    uint8_t err, prio, *ip_ptr, my_prio;
-    uint16_t gp, *data, bid, pkt_bid, pkt_port, my_client_port = 0;
+    uint8_t err, prio, *ip_ptr, my_prio = 255;
+    uint16_t gp, *data, bid = 0, pkt_bid, pkt_port, my_client_port = 0;
     uint32_t seq_num = 0, target_client_ip, my_client_ip=0, *gp_ptr, *data_ptr, data_len, i;
     int16_t cid = -1, pkt_cid, last_logged_cid = -1;
     uint32_t t1 = 0;
